@@ -1,0 +1,26 @@
+[
+  {
+    "created_at": "2026-05-15 15:17:23",
+    "telegram_id": 1388589841,
+    "name": "Timmbaland",
+    "username": "timmbaland",
+    "model": "Changan UNI-Z",
+    "budget": "12.500",
+    "city": "Бишкек",
+    "phone": "0550568566",
+    "comment": "как долго мне приедет",
+    "status": "new"
+  },
+  {
+    "created_at": "2026-05-15 15:23:06",
+    "telegram_id": 1388589841,
+    "name": "Timmbaland",
+    "username": "timmbaland",
+    "model": "Changan CS75 Plus",
+    "budget": "12",
+    "city": "bishkek",
+    "phone": "0",
+    "comment": "no",
+    "status": "new"
+  }
+]
