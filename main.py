@@ -33,9 +33,12 @@ CREATE TABLE IF NOT EXISTS leads (
     client_name TEXT,
     username TEXT,
     telegram_id TEXT,
+    brand TEXT,
     model TEXT,
+    year TEXT,
     budget TEXT,
-    city TEXT,
+    source_country TEXT,
+    delivery_city TEXT,
     phone TEXT,
     comment TEXT,
     status TEXT
@@ -45,9 +48,12 @@ db.commit()
 
 
 class LeadForm(StatesGroup):
+    brand = State()
     model = State()
+    year = State()
     budget = State()
-    city = State()
+    source_country = State()
+    delivery_city = State()
     phone = State()
     comment = State()
 
@@ -55,10 +61,10 @@ class LeadForm(StatesGroup):
 def main_menu():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="Оставить заявку", callback_data="lead_start")],
-        [InlineKeyboardButton(text="Модели Changan", callback_data="models")],
         [InlineKeyboardButton(text="Узнать стоимость", callback_data="price")],
-        [InlineKeyboardButton(text="Связаться с менеджером", callback_data="manager")],
-        [InlineKeyboardButton(text="О компании", callback_data="about")]
+        [InlineKeyboardButton(text="Страны поставки", callback_data="countries")],
+        [InlineKeyboardButton(text="О компании", callback_data="about")],
+        [InlineKeyboardButton(text="Связаться с менеджером", callback_data="manager")]
     ])
 
 
@@ -68,20 +74,36 @@ def back_menu():
     ])
 
 
-def models_menu():
+def brands_menu():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Changan UNI-Z", callback_data="model:Changan UNI-Z")],
-        [InlineKeyboardButton(text="Changan UNI-K", callback_data="model:Changan UNI-K")],
-        [InlineKeyboardButton(text="Changan UNI-V", callback_data="model:Changan UNI-V")],
-        [InlineKeyboardButton(text="Changan CS75 Plus", callback_data="model:Changan CS75 Plus")],
-        [InlineKeyboardButton(text="Другая модель", callback_data="model:Другая модель")],
+        [InlineKeyboardButton(text="Toyota", callback_data="brand:Toyota")],
+        [InlineKeyboardButton(text="Lexus", callback_data="brand:Lexus")],
+        [InlineKeyboardButton(text="BMW", callback_data="brand:BMW")],
+        [InlineKeyboardButton(text="Mercedes-Benz", callback_data="brand:Mercedes-Benz")],
+        [InlineKeyboardButton(text="KIA", callback_data="brand:KIA")],
+        [InlineKeyboardButton(text="Hyundai", callback_data="brand:Hyundai")],
+        [InlineKeyboardButton(text="Changan", callback_data="brand:Changan")],
+        [InlineKeyboardButton(text="BYD", callback_data="brand:BYD")],
+        [InlineKeyboardButton(text="Другая марка", callback_data="brand:Другая марка")],
+        [InlineKeyboardButton(text="Назад", callback_data="home")]
+    ])
+
+
+def countries_menu():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Китай", callback_data="country:Китай")],
+        [InlineKeyboardButton(text="Корея", callback_data="country:Корея")],
+        [InlineKeyboardButton(text="США", callback_data="country:США")],
+        [InlineKeyboardButton(text="Дубай", callback_data="country:Дубай")],
+        [InlineKeyboardButton(text="Грузия", callback_data="country:Грузия")],
+        [InlineKeyboardButton(text="Европа", callback_data="country:Европа")],
+        [InlineKeyboardButton(text="Не знаю, нужна консультация", callback_data="country:Нужна консультация")],
         [InlineKeyboardButton(text="Назад", callback_data="home")]
     ])
 
 
 async def send_to_manager(text):
     if not MANAGER_CHAT_ID:
-        print("MANAGER_CHAT_ID не указан")
         print(text)
         return
 
@@ -97,7 +119,8 @@ async def show_home(target):
     text = (
         "Здравствуйте.\n"
         "Вас приветствует Автоальянс86KG.\n\n"
-        "Мы специализируемся на подборе и поставке автомобилей Changan под заказ.\n\n"
+        "Подбор и поставка автомобилей под заказ из Китая, Кореи, США, Дубая, Грузии и Европы.\n\n"
+        "Работаем со всеми марками автомобилей.\n\n"
         "Выберите нужный раздел:"
     )
 
@@ -125,7 +148,7 @@ async def show_leads(message: Message):
         return
 
     cursor.execute("""
-    SELECT id, created_at, model, budget, city, phone, status
+    SELECT id, created_at, brand, model, budget, source_country, delivery_city, phone, status
     FROM leads
     ORDER BY id DESC
     LIMIT 10
@@ -142,11 +165,13 @@ async def show_leads(message: Message):
         text += (
             f"Заявка #{row[0]}\n"
             f"Дата: {row[1]}\n"
-            f"Модель: {row[2]}\n"
-            f"Бюджет: {row[3]}\n"
-            f"Город: {row[4]}\n"
-            f"Телефон: {row[5]}\n"
-            f"Статус: {row[6]}\n\n"
+            f"Марка: {row[2]}\n"
+            f"Модель: {row[3]}\n"
+            f"Бюджет: {row[4]}\n"
+            f"Поставка: {row[5]}\n"
+            f"Город: {row[6]}\n"
+            f"Телефон: {row[7]}\n"
+            f"Статус: {row[8]}\n\n"
         )
 
     await message.answer(text)
@@ -163,13 +188,13 @@ async def home(callback: CallbackQuery, state: FSMContext):
 async def about(callback: CallbackQuery):
     await callback.answer()
     await callback.message.edit_text(
-        "Автоальянс86KG — сервис по подбору и поставке автомобилей Changan под заказ.\n\n"
-        "Мы помогаем клиентам подобрать автомобиль, проверить комплектацию, организовать выкуп, доставку и сопровождение сделки.\n\n"
-        "Основное направление:\n"
-        "Changan под заказ.\n\n"
+        "Автоальянс86KG — сервис по подбору и поставке автомобилей под заказ.\n\n"
+        "Мы помогаем клиентам подобрать автомобиль под бюджет, проверить комплектацию, организовать выкуп, доставку и сопровождение сделки.\n\n"
+        "Работаем с направлениями:\n"
+        "Китай, Корея, США, Дубай, Грузия, Европа.\n\n"
         "Что входит в работу:\n"
         "Подбор автомобиля\n"
-        "Проверка комплектации\n"
+        "Проверка автомобиля и комплектации\n"
         "Выкуп\n"
         "Доставка\n"
         "Таможенное сопровождение\n"
@@ -178,12 +203,22 @@ async def about(callback: CallbackQuery):
     )
 
 
-@dp.callback_query(F.data == "models")
-async def models(callback: CallbackQuery):
+@dp.callback_query(F.data == "countries")
+async def countries(callback: CallbackQuery):
     await callback.answer()
     await callback.message.edit_text(
-        "Выберите интересующую модель Changan:",
-        reply_markup=models_menu()
+        "Доступные направления поставки:\n\n"
+        "Китай\n"
+        "Корея\n"
+        "США\n"
+        "Дубай\n"
+        "Грузия\n"
+        "Европа\n\n"
+        "Если не знаете, откуда лучше заказать автомобиль, оставьте заявку. Менеджер подскажет оптимальный вариант.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Оставить заявку", callback_data="lead_start")],
+            [InlineKeyboardButton(text="Назад", callback_data="home")]
+        ])
     )
 
 
@@ -191,8 +226,8 @@ async def models(callback: CallbackQuery):
 async def price(callback: CallbackQuery):
     await callback.answer()
     await callback.message.edit_text(
-        "Стоимость автомобиля Changan зависит от модели, комплектации, года выпуска, курса валют и доставки.\n\n"
-        "Чтобы подготовить точный расчёт, оставьте заявку. Менеджер свяжется с вами и подготовит актуальное предложение.",
+        "Стоимость автомобиля зависит от марки, модели, года, комплектации, страны поставки, курса валют и доставки.\n\n"
+        "Для точного расчёта оставьте короткую заявку.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Оставить заявку", callback_data="lead_start")],
             [InlineKeyboardButton(text="Назад", callback_data="home")]
@@ -205,7 +240,7 @@ async def manager(callback: CallbackQuery):
     await callback.answer()
     await callback.message.edit_text(
         f"Менеджер Автоальянс86KG:\n{MANAGER_PHONE}\n\n"
-        "Также вы можете оставить заявку через бота, чтобы мы не потеряли ваш запрос.",
+        "Также вы можете оставить заявку через бота, чтобы менеджер получил всю информацию сразу.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Оставить заявку", callback_data="lead_start")],
             [InlineKeyboardButton(text="Назад", callback_data="home")]
@@ -216,38 +251,70 @@ async def manager(callback: CallbackQuery):
 @dp.callback_query(F.data == "lead_start")
 async def lead_start(callback: CallbackQuery, state: FSMContext):
     await state.clear()
+    await state.set_state(LeadForm.brand)
+    await callback.answer()
+    await callback.message.edit_text(
+        "Оформим заявку на подбор автомобиля.\n\n"
+        "Выберите марку:",
+        reply_markup=brands_menu()
+    )
+
+
+@dp.callback_query(F.data.startswith("brand:"))
+async def choose_brand(callback: CallbackQuery, state: FSMContext):
+    brand = callback.data.replace("brand:", "")
+    await state.update_data(brand=brand)
     await state.set_state(LeadForm.model)
     await callback.answer()
+
     await callback.message.edit_text(
-        "Оформим заявку на подбор Changan.\n\n"
-        "Выберите модель:",
-        reply_markup=models_menu()
+        f"Марка: {brand}\n\n"
+        "Введите модель автомобиля.\n"
+        "Например: Camry, RX 350, X5, E-Class, Sonata"
     )
 
 
-@dp.callback_query(F.data.startswith("model:"))
-async def choose_model(callback: CallbackQuery, state: FSMContext):
-    model = callback.data.replace("model:", "")
-    await state.update_data(model=model)
+@dp.message(LeadForm.model)
+async def get_model(message: Message, state: FSMContext):
+    await state.update_data(model=message.text)
+    await state.set_state(LeadForm.year)
+    await message.answer("Укажите желаемый год выпуска.\nНапример: 2022 или 2023-2024")
+
+
+@dp.message(LeadForm.year)
+async def get_year(message: Message, state: FSMContext):
+    await state.update_data(year=message.text)
     await state.set_state(LeadForm.budget)
-    await callback.answer()
-    await callback.message.edit_text(
-        f"Модель: {model}\n\n"
-        "Укажите ваш бюджет.\n"
-        "Например: до 25 000 долларов"
-    )
+    await message.answer("Укажите ваш бюджет.\nНапример: до 25 000 долларов")
 
 
 @dp.message(LeadForm.budget)
 async def get_budget(message: Message, state: FSMContext):
     await state.update_data(budget=message.text)
-    await state.set_state(LeadForm.city)
-    await message.answer("Укажите город доставки.\nНапример: Бишкек")
+    await state.set_state(LeadForm.source_country)
+    await message.answer(
+        "Выберите страну поставки:",
+        reply_markup=countries_menu()
+    )
 
 
-@dp.message(LeadForm.city)
-async def get_city(message: Message, state: FSMContext):
-    await state.update_data(city=message.text)
+@dp.callback_query(F.data.startswith("country:"))
+async def choose_country(callback: CallbackQuery, state: FSMContext):
+    country = callback.data.replace("country:", "")
+    await state.update_data(source_country=country)
+    await state.set_state(LeadForm.delivery_city)
+    await callback.answer()
+
+    await callback.message.edit_text(
+        f"Страна поставки: {country}\n\n"
+        "Укажите город доставки.\n"
+        "Например: Бишкек, Ош, Алматы"
+    )
+
+
+@dp.message(LeadForm.delivery_city)
+async def get_delivery_city(message: Message, state: FSMContext):
+    await state.update_data(delivery_city=message.text)
     await state.set_state(LeadForm.phone)
     await message.answer("Укажите номер телефона для связи.\nНапример: +996 555 123 456")
 
@@ -258,7 +325,7 @@ async def get_phone(message: Message, state: FSMContext):
     await state.set_state(LeadForm.comment)
     await message.answer(
         "Добавьте комментарий к заказу.\n\n"
-        "Например: цвет, комплектация, сроки.\n"
+        "Например: цвет, комплектация, двигатель, сроки.\n"
         "Если комментария нет, напишите: нет"
     )
 
@@ -266,6 +333,7 @@ async def get_phone(message: Message, state: FSMContext):
 @dp.message(LeadForm.comment)
 async def get_comment(message: Message, state: FSMContext):
     await state.update_data(comment=message.text)
+
     data = await state.get_data()
     user = message.from_user
     created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -273,16 +341,20 @@ async def get_comment(message: Message, state: FSMContext):
     cursor.execute("""
     INSERT INTO leads (
         created_at, client_name, username, telegram_id,
-        model, budget, city, phone, comment, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        brand, model, year, budget, source_country,
+        delivery_city, phone, comment, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         created_at,
         user.full_name,
         user.username,
         str(user.id),
+        data.get("brand"),
         data.get("model"),
+        data.get("year"),
         data.get("budget"),
-        data.get("city"),
+        data.get("source_country"),
+        data.get("delivery_city"),
         data.get("phone"),
         data.get("comment"),
         "new"
@@ -297,9 +369,12 @@ async def get_comment(message: Message, state: FSMContext):
         f"Имя: {user.full_name}\n"
         f"Username: @{user.username}\n"
         f"Telegram ID: {user.id}\n\n"
+        f"Марка: {data.get('brand')}\n"
         f"Модель: {data.get('model')}\n"
+        f"Год: {data.get('year')}\n"
         f"Бюджет: {data.get('budget')}\n"
-        f"Город: {data.get('city')}\n"
+        f"Страна поставки: {data.get('source_country')}\n"
+        f"Город доставки: {data.get('delivery_city')}\n"
         f"Телефон: {data.get('phone')}\n"
         f"Комментарий: {data.get('comment')}\n\n"
         f"Статус: новая заявка"
@@ -309,7 +384,7 @@ async def get_comment(message: Message, state: FSMContext):
 
     await message.answer(
         "Спасибо. Ваша заявка принята.\n\n"
-        "Менеджер Автоальянс86KG свяжется с вами и подготовит варианты Changan под ваш запрос.",
+        "Менеджер Автоальянс86KG свяжется с вами и подготовит варианты под ваш запрос.",
         reply_markup=main_menu()
     )
 
@@ -320,28 +395,36 @@ async def get_comment(message: Message, state: FSMContext):
 async def auto_reply(message: Message):
     text = message.text.lower() if message.text else ""
 
+    await send_to_manager(
+        "Новое сообщение от клиента\n\n"
+        f"Имя: {message.from_user.full_name}\n"
+        f"Username: @{message.from_user.username}\n"
+        f"Telegram ID: {message.from_user.id}\n\n"
+        f"Сообщение:\n{message.text}"
+    )
+
     if "цена" in text or "стоимость" in text or "сколько" in text:
         await message.answer(
-            "Стоимость зависит от модели, комплектации и доставки.\n\n"
+            "Стоимость зависит от марки, модели, года, комплектации, страны поставки и доставки.\n\n"
             "Для точного расчёта нажмите «Оставить заявку».",
             reply_markup=main_menu()
         )
-    elif "номер" in text or "телефон" in text or "менеджер" in text:
+    elif "менеджер" in text or "номер" in text or "телефон" in text:
         await message.answer(
             f"Телефон менеджера:\n{MANAGER_PHONE}\n\n"
             "Также можете оставить заявку через меню.",
             reply_markup=main_menu()
         )
-    elif "uni" in text or "чанган" in text or "changan" in text:
+    elif "китай" in text or "корея" in text or "сша" in text or "дубай" in text or "грузия" in text:
         await message.answer(
-            "Мы работаем с автомобилями Changan под заказ.\n\n"
-            "Оставьте заявку, и менеджер подготовит варианты под ваш бюджет.",
+            "Мы работаем с поставками из Китая, Кореи, США, Дубая, Грузии и Европы.\n\n"
+            "Оставьте заявку, и менеджер подскажет оптимальное направление под ваш бюджет.",
             reply_markup=main_menu()
         )
     else:
         await message.answer(
             "Ваше сообщение получено.\n\n"
-            "Для быстрого подбора автомобиля нажмите «Оставить заявку».",
+            "Для быстрого расчёта и подбора автомобиля нажмите «Оставить заявку».",
             reply_markup=main_menu()
         )
 
